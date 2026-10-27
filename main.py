@@ -1,6 +1,7 @@
 from database import get_connection
 from fastapi import FastAPI
-#import psycopg
+from fastapi import HTTPException
+import psycopg
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -160,5 +161,37 @@ def patch_product(product_id: int, product: ProductUpdate):
     conn.close()
 
     return {"message": "Product updated"}
+
+
+
+
+@app.get("/products/{product_id}")
+def get_product(product_id: int):
+    con = get_connection()
+    cur = con.cursor()
+
+    try:
+        cur.execute(
+            "SELECT * FROM products WHERE id = %s",
+            (product_id,)
+        )
+        product = cur.fetchone()
+
+        if product is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Product not found"
+            )
+
+        return {
+            "id": product[0],
+            "name": product[1],
+            "stock": product[2],
+            "price": float(product[3])
+        }
+
+    finally:
+        cur.close()
+        con.close()
 
 
